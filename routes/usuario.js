@@ -16,11 +16,19 @@ var Usuario = require('../models/usuario');
 
 //Rutas la palabra viene de app = express();
 app.get('/',(req,res,next)=>{
+    //extraigo la variable desde para utilizarla en en el skip
+    var desde= req.query.desde || 0;
+    desde= Number(desde);
+
     //es Usuario es el del schema de usuarios
     //dentro del find({}) se coloca la condicion de busqueda y al lado de
     //este se coloca el resultado de la busqueda que viene como un callback find({},()=>{})
     //(err,usuarios) el primer campo es un error que regresa mongo y el otro es la respuesta al la busqueda
     Usuario.find({},'nombre email img role')
+        //.skip() sirve para indicar cuantos datos se va a saltar
+        .skip(desde)
+        //.limit() es la cantidad maxima de datos que murstra
+        .limit(5)
         .exec(
             (err,usuarios)=>{
             if (err) {
@@ -31,10 +39,23 @@ app.get('/',(req,res,next)=>{
                 });
             }
 
-            res.status(200).json({
-                ok:true,
-                usuarios:usuarios
+            //.count({}) es la funcion que cuenta la cantidad de archivos
+            Usuario.count({},(err,conteo)=>{
+                if (err) {
+                    return res.status(500).json({
+                        ok:false,
+                        Mensaje: 'Error al contar usuarios',
+                        errors: err
+                    });
+                }
+
+                res.status(200).json({
+                    ok:true,
+                    usuarios:usuarios,
+                    total: conteo
+                });
             });
+
     })
 });
 
@@ -44,7 +65,9 @@ app.get('/',(req,res,next)=>{
 //=========================================
 app.put('/:id',mdAutenticacion.verificaToken,(req,res)=>{
 
+    //el req.params son los valores que vienen en el URL
     var id= req.params.id;
+    //req.body trae todos los valores dentro del "formulario x-www-form-urlencoded"
     var body = req.body;
 
     Usuario.findById(id,(err,usuario)=>{
